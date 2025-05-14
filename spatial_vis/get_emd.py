@@ -104,12 +104,12 @@ if __name__=='__main__':
     args = parser.parse_args()
 
     slide_nr = args.slide_nr
-    preds_path = f'./visualizations/spatial_GBM_pred/{args.pred_folder}/'
-    dest_path = f'./visualizations/comparisons/{args.save_folder}/'
+    preds_path = args.pred_folder
+    dest_path = args.save_folder
 
     slide_name = 'HRI_'+str(slide_nr)+'_T.tif'
     print(slide_name)
-    csv_path = preds_path + slide_name + '/stride-1.csv'
+    csv_path = preds_path + slide_name + '/stride-10.csv'
     
     gene_names = args.gene_names
     if '.npy' in gene_names:

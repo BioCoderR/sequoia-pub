@@ -1,3 +1,4 @@
+
 # Code from the awesome lucidrains: https://github.com/lucidrains/vit-pytorch/blob/main/vit_pytorch/simple_vit.py
 # with some of my own modifications
 
@@ -7,7 +8,6 @@ import os
 from tqdm import tqdm
 import numpy as np
 from sklearn.metrics import mean_absolute_error, mean_absolute_percentage_error, mean_squared_error
-
 from einops import rearrange
 from src.he2rna import compute_correlations
 import pdb
@@ -295,17 +295,22 @@ def predict(model, dataloader, run=None, verbose=True):
     preds = []
     wsis = []
     projs = []
-    for image, rna_data, wsi_file_name, tcga_project in tqdm(dataloader):
-        if image == []: continue
-        image = image.to(model.device)
-        wsis.append(wsi_file_name)
-        projs.append(tcga_project)
-
-        pred = model(image)
-        preds.append(pred.detach().cpu().numpy())
+    for images, rna_data, wsi_file_names, tcga_projects in tqdm(dataloader):
+        if not isinstance(images, list):
+            images = [images]
+            wsi_file_names = [wsi_file_names]
+            tcga_projects = [tcga_projects]
+        for image, wsi_file_name, tcga_project in zip(images, wsi_file_names, tcga_projects):
+            if image is None:
+                continue
+            image = image.to(model.device).unsqueeze(0)  # Add batch dimension
+            pred = model(image)
+            preds.append(pred.detach().cpu().numpy())
+            wsis.append(wsi_file_name)
+            projs.append(tcga_project)
 
     preds = np.concatenate((preds), axis=0)
-    wsis = np.concatenate((wsis), axis=0)
-    projs = np.concatenate((projs), axis=0)
+    wsis = np.array(wsis)
+    projs = np.array(projs)
 
     return preds, wsis, projs

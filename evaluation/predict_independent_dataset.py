@@ -2,14 +2,20 @@ import os
 import json
 import argparse
 import pickle
+import torch
 from torch.utils.data import DataLoader
 import torch.nn as nn
-
+import numpy as np
+import sys
+import pandas as pd
+from pathlib import Path
+from tqdm import tqdm
+sys.path.append(str(Path(__file__).resolve().parents[1]))
 from src.read_data import SuperTileRNADataset
 from src.utils import filter_no_features, custom_collate_fn
 from src.vit import train, evaluate, predict
 from src.tformer_lin import ViS
-
+from safetensors.torch import load_file as safe_load
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Getting features')
@@ -21,7 +27,7 @@ if __name__ == '__main__':
     parser.add_argument('--batch_size', type=int, default=16, help='Batch size')
     parser.add_argument('--depth', type=int, default=6, help='Transformer depth')
     parser.add_argument('--num-heads', type=int, default=16, help='Number of attention heads')
-    parser.add_argument('--tcga_project', default=None, type=str, default='', help='The tcga_project we want to use')
+    parser.add_argument('--tcga_project', type=str, default='', help='The tcga_project we want to use')
     parser.add_argument('--save_dir', type=str, default='', help='Where to save results')
     parser.add_argument('--exp_name', type=str, default='exp', help='Experiment name')
 
@@ -46,10 +52,11 @@ if __name__ == '__main__':
 
     # filter out WSIs for which we don't have features and filter on TCGA project
     df = filter_no_features(df, feature_path = args.feature_path, feature_name = args.feature_use)
+    print("After feature filtering:", len(df))
     genes = [c[4:] for c in df.columns if "rna_" in c]
     if 'tcga_project' in df.columns and args.tcga_project:
-        df = df[df['tcga_project'].isin(args.tcga_project)].reset_index(drop=True)
-    
+        df = df[df['tcga_project'].isin([args.tcga_project])].reset_index(drop=True)
+        print(f"After TCGA project filtering ({args.tcga_project}):", len(df))
     # init test dataloader
     test_dataset = SuperTileRNADataset(df, args.feature_path, args.feature_use)
     test_dataloader = DataLoader(test_dataset, 
@@ -60,12 +67,25 @@ if __name__ == '__main__':
 
     res_preds   = []
     res_random  = []
-    cancer      = args.tcga_project.split('-')[-1].lower()
+    # cancer      = args.tcga_project.split('-')[-1].lower()
 
     for fold in range(args.folds):
-
-        # load model from huggingface
-        model = ViS.from_pretrained(f"gevaertlab/sequoia-{cancer}-{fold}")
+        
+        model_path = f'/projects/conco/gundla/root/uniglacier/models/pretrained/sequoia/sequoia-gbm-{fold}'
+        model = ViS(
+            num_outputs=467, 
+            input_dim=1024, 
+            depth=args.depth, 
+            nheads=args.num_heads,  
+            dimensions_f=64, 
+            dimensions_c=64, 
+            dimensions_s=64, 
+            device=device)
+        
+        from safetensors.torch import load_file as safe_load
+        state_dict = safe_load(os.path.join(model_path,"model.safetensors"))
+        filtered_dict = {k: v for k, v in state_dict.items() if k in model.state_dict() and model.state_dict()[k].shape == v.shape}
+        model.load_state_dict(filtered_dict, strict=False) # no_strict due to less no of genes
         model.to(device)
 
         # model prediction on test set

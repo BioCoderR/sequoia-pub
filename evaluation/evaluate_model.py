@@ -4,32 +4,31 @@ import numpy as np
 import pickle as pl
 import pdb
 import os
-
+import sys
+from pathlib import Path
 from sklearn.metrics import mean_squared_error
 from statsmodels.stats.multitest import fdrcorrection
 from scipy import stats
 
 import seaborn as sns
 import matplotlib.pyplot as plt
-
+sys.path.append(str(Path(__file__).resolve().parents[1]))
 from evaluation.CorrelationStats import dependent_corr
 
 if __name__=='__main__':
     
-    model_dir = 'model_path'
+    model_dir = '/projects/conco/gundla/root/uniglacier/models/pretrained/sequoia/'
     folds = 5
-    cancers = ['brca', 'coad', 'gbm', 'kirp', 'kirc', 'luad', 'lusc', 'paad', 
-              'prad', 'skcm', 'thca', 'ucec', 'hnsc', 'stad', 'blca', 'lihc']    
-
-    save_path = os.path.join(model_dir, 'results')
-    if not os.path.exists(save_path):
-        os.makedirs(save_path)
+    cancers = ['lgg', 'gbm']  # Use current folder, assuming test_results.pkl is at model_dir/sequoia_cancer_type/test_results.pkl
 
     df_list = []
     for cancer_type in cancers:
         try:
             print(cancer_type)
-            with open(os.path.join(model_dir, cancer_type, 'test_results.pkl'), 'rb') as f:
+            save_path = os.path.join(model_dir, cancer_type, 'results')
+            if not os.path.exists(save_path):
+                os.makedirs(save_path)
+            with open(os.path.join(model_dir, f'sequoia_{cancer_type}', 'test_results.pkl'), 'rb') as f:
                 test_res = pl.load(f)
 
             real = []

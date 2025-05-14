@@ -3,16 +3,18 @@ import json
 import argparse
 import pickle
 from tqdm import tqdm
-
+from pathlib import Path
 import numpy as np
 import torch
 from torchvision import transforms
 import h5py
 import timm
 from PIL import Image
-
+import sys
 import pdb
-
+# Add Path to load the .pt file
+sys.path.append("/homes/psgudla/PARA/AREAS/Models/sequoia-pub/")
+sys.path.append("/projects/conco/gundla/root/image2st/")
 from src.read_data import *
 from src.resnet import resnet50
 
@@ -59,7 +61,7 @@ if __name__ == '__main__':
         model = resnet50(pretrained=True).to(device)
         model.eval()
     else:
-        local_dir = "" # add dir for saved model
+        local_dir = "/projects/conco/gundla/root/pretrained-models/UNI/" # add dir for saved model
         model = timm.create_model("vit_large_patch16_224", img_size=224, patch_size=16, 
                                     init_values=1e-5, num_classes=0, dynamic_img_size=True)
         model.load_state_dict(torch.load(os.path.join(local_dir, 
@@ -73,8 +75,11 @@ if __name__ == '__main__':
     df = df.drop_duplicates(["wsi_file_name"]) # there could be duplicated WSIs mapped to different RNA files and we only need features for each WSI
 
     # Filter tcga projects
-    if args.tcga_projects:
-        df = df[df['tcga_project'].isin(args.tcga_projects)]
+    if "tcga_project" not in df.columns:
+        print("Warning: 'tcga_project' column not found in the CSV file.")
+    else:
+        if args.tcga_projects:
+            df = df[df['tcga_project'].isin(args.tcga_projects)]
 
     # indexing based on values for parallelization
     if args.start is not None and args.end is not None:
@@ -92,11 +97,11 @@ if __name__ == '__main__':
         project = row['tcga_project']
         WSI = WSI.replace('.svs', '') # in the ref file of prad there is a .svs that should not be there
 
-        if not os.path.exists(os.path.join(patch_data_path, WSI_slide)):
-            print('Not exist {}'.format(os.path.join(patch_data_path, WSI_slide)))
+        if not os.path.exists(os.path.join(args.patch_data_path, WSI_slide)):
+            print('Not exist {}'.format(os.path.join(args.patch_data_path, WSI_slide)))
             continue
 
-        path = os.path.join(patch_data_path, WSI_slide, WSI_slide + '.hdf5')
+        path = os.path.join(args.patch_data_path, WSI_slide, WSI_slide + '.hdf5')
         path_h5 = os.path.join(args.feature_path, project, WSI)
 
         if not os.path.exists(path_h5):
@@ -142,4 +147,3 @@ if __name__ == '__main__':
             print(e)
             print(WSI)
             continue
-

@@ -10,10 +10,12 @@ import h5py
 
 
 class SuperTileRNADataset(Dataset):
-    def __init__(self, csv_path: str, features_path, quick=None):
+    def __init__(self, csv_path: str, features_path, feature_use, quick=None):
         self.csv_path = csv_path
         self.quick = quick
         self.features_path = features_path
+        # Adding this line to store feature_use storing in memory for the which feature to use
+        self.feature_use = feature_use  
         if type(csv_path) == str:
             self.data = pd.read_csv(csv_path)
         else:
@@ -45,7 +47,8 @@ class SuperTileRNADataset(Dataset):
             if 'GTEX' not in path:
                 path = path.replace('.svs','')
             f = h5py.File(path, 'r')
-            features = f['cluster_features'][:]
+            # features = f['uni_features'][:]
+            features = f[self.feature_use][:]  # Use self.feature_use here too
             f.close()
             features = torch.tensor(features, dtype=torch.float32)
         except Exception as e:

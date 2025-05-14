@@ -15,7 +15,9 @@ def custom_collate_fn(batch):
         collate: Default collage for the dataloader
     """
     batch = list(filter(lambda x: x[0] is not None, batch))
-    return torch.utils.data.dataloader.default_collate(batch)
+    images, rna_data, wsi_file_names, tcga_projects = zip(*batch)
+    return list(images), torch.stack(rna_data), list(wsi_file_names), list(tcga_projects)
+    # return torch.utils.data.dataloader.default_collate(batch)
 
 
 def filter_no_features(df, feature_path, feature_name):

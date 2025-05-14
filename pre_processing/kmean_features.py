@@ -7,7 +7,9 @@ from tqdm import tqdm
 import numpy as np
 import h5py
 from sklearn.cluster import KMeans
-
+import sys
+from pathlib import Path
+sys.path.append(str(Path(__file__).resolve().parents[1]))
 from src.read_data import *
 from src.utils import exists
 
@@ -77,9 +79,9 @@ if __name__ == '__main__':
             print(f'Cannot open file {path}')
             continue
         try:
-            features = f['resnet_features']
+            features = f['uni_features'] # changed from resnet to UNI for my purpose
         except:
-            print(f'No resnet features for {path}')
+            print(f'No UNI features for {path}')
             f.close()
             continue
 

@@ -150,5 +150,23 @@ Scripts for predicting spatial gene expression levels within the same tissue sli
 
 &copy; [Gevaert's Lab](https://med.stanford.edu/gevaertlab.html) MIT License
 
+def save_corrupted_slides(integrity_results: List[Dict], output_path: str):
+    """
+    Save a CSV listing slides with missing or corrupted files.
+    """
+    filtered = []
+    for result in integrity_results:
+        if (not result['celldet_exists'] or not result['celldet_valid'] or
+            not result['binary_exists'] or not result['binary_valid'] or
+            not result['preprocessing_exists']):
+            filtered.append({'slide_id': result['slide_id']})
 
+    if filtered:
+        corrupted_path = os.path.join(output_path, 'ref_corrupted_slides.csv')
+        pd.DataFrame(filtered).to_csv(corrupted_path, index=False)
+        print(f"\n  Corrupted slide list saved to: {corrupted_path}")
 
+    save_corrupted_slides(integrity_results, OUT_ROOT)
+
+if __name__ == "__main__":
+    main()
